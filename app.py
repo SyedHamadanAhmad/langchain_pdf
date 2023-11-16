@@ -10,10 +10,10 @@ from langchain.chains.question_answering import load_qa_chain
 
 load_dotenv()
 
-st.set_page_config(page_title="Ask your pdf")
 
 st.title("Ask your :red[PDF]")
-
+if "messages" not in st.session_state:
+    st.session_state.messages=[]
 #upload file
 pdf=st.file_uploader("Upload your pdf", type='pdf')
 
@@ -39,18 +39,20 @@ if pdf is not None:
     embeddings=CohereEmbeddings(cohere_api_key=os.getenv("COHERE_API_KEY"))
     knowledge_base=FAISS.from_texts(chunks, embeddings)
 
-    user_question=st.text_input("Ask a question about your PDF")
+    user_question=st.chat_input("Ask a question about your PDF")
    
 
     if user_question:
-       
-
-
+        st.session_state.messages.append({"role": "user", "content": user_question})
         llm=Cohere()
         docs=knowledge_base.similarity_search(user_question)
         chain=load_qa_chain(llm, chain_type="stuff")
         response=chain.run(input_documents=docs, question=user_question)
-        st.write(response)
+        st.session_state.messages.append({"role": "ai", "content": response})
+        for message in st.session_state.messages:
+            with st.chat_message(message.get("role")):
+                st.write(message.get("content"))
+
         
 
 
